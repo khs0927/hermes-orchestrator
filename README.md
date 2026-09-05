@@ -204,4 +204,4 @@ MIT
 
 ---
 
-**Related project**: [Hermes-Minis](https://github.com/user/hermes-minis) — full Hermes Agentelei on iOS with Telegram & dashboard.
+**Related project**: [Hermes-Minis](https://github.com/khs0927/hermes-minis) — full Hermes Agent on iOS with Telegram & dashboard.

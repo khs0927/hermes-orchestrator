@@ -1,0 +1,5 @@
+# 셸 스크립트는 항상 LF (CRLF 혼입 시 bash -n 실패)
+*.sh text eol=lf
+/activate.sh text eol=lf
+/hermes_cli text eol=lf
+/hermes_ai_cli text eol=lf
