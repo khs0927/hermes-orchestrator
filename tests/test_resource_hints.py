@@ -16,7 +16,8 @@ def test_resource_hints_accept_only_bounded_read_only_candidates(tmp_path: Path,
         "import json\n"
         "print(json.dumps(["
         "{'score': 9.5, 'id': 'project_contract:aec-source-to-cad-executor', "
-        "'type': 'project_contract', 'name': 'aec-source-to-cad-executor'},"
+        "'type': 'project_contract', 'name': 'aec-source-to-cad-executor', "
+        "'verification_status': 'verified_in_ci'},"
         "{'score': 4.0, 'id': 'project:khs0927/power-cad-mcp', "
         "'type': 'project', 'name': 'khs0927/power-cad-mcp'}"
         "]))\n",
@@ -32,6 +33,7 @@ def test_resource_hints_accept_only_bounded_read_only_candidates(tmp_path: Path,
             "type": "project_contract",
             "name": "aec-source-to-cad-executor",
             "score": 9.5,
+            "verification_status": "verified_in_ci",
         },
         {
             "id": "project:khs0927/power-cad-mcp",
