@@ -58,12 +58,14 @@ def query_resource_hints(prompt: str, k: int = 8) -> list[dict[str, Any]]:
         if not all(isinstance(value, str) and value for value in (resource_id, resource_type, name)):
             continue
         score = item.get("score")
-        hints.append(
-            {
-                "id": resource_id,
-                "type": resource_type,
-                "name": name,
-                "score": score if isinstance(score, (int, float)) else None,
-            }
-        )
+        verification_status = item.get("verification_status")
+        hint = {
+            "id": resource_id,
+            "type": resource_type,
+            "name": name,
+            "score": score if isinstance(score, (int, float)) else None,
+        }
+        if isinstance(verification_status, str) and verification_status:
+            hint["verification_status"] = verification_status
+        hints.append(hint)
     return hints
