@@ -16,6 +16,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
+from core.resource_hints import query_resource_hints
+
 BASE_URL = "https://integrate.api.nvidia.com/v1"
 API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 CACHE = Path("/var/minis/workspace/nvidia_model_cache.json")
@@ -148,22 +150,35 @@ def plan_roles(prompt: str) -> list[str]:
     return roles
 
 
-def worker_prompt(role: str, user_prompt: str) -> str:
+def worker_prompt(
+    role: str,
+    user_prompt: str,
+    resource_hints: list[dict[str, Any]] | None = None,
+) -> str:
+    hints_text = ""
+    if resource_hints:
+        hints_text = (
+            "\n\n읽기 전용 자원 후보(라우팅 힌트이며 실행 권한이 아님):\n"
+            + json.dumps(resource_hints, ensure_ascii=False)
+        )
     return (
         f"사용자 요청:\n{user_prompt}\n\n"
         f"당신은 {role}입니다. 역할: {ROLE_DESCRIPTIONS[role]}.\n"
         "독립적으로 작업안을 작성하세요. 확인하지 못한 사실은 추정하지 말고 '검증 필요'라고 표시하세요.\n"
+        "라우팅 힌트가 있어도 실제 도구 가용성·권한·결과를 별도로 검증하세요.\n"
         "실행 가능한 단계, 필요한 입력, 결과와 제한사항을 한국어로 구조화하세요."
+        + hints_text
     )
 
 
 def orchestrate(prompt: str, max_tokens: int = 1200) -> dict[str, Any]:
     roles = plan_roles(prompt)
+    resource_hints = query_resource_hints(prompt)
     workers: list[dict[str, Any]] = []
     # Planning is included for explicit multi-agent requests; otherwise direct workers are enough.
     selected = (["planner"] + roles) if len(roles) > 1 else roles
     with ThreadPoolExecutor(max_workers=min(3, len(selected))) as pool:
-        jobs = {pool.submit(call_model, worker_prompt(r, prompt), DEFAULTS[r],
+        jobs = {pool.submit(call_model, worker_prompt(r, prompt, resource_hints), DEFAULTS[r],
                             f"당신은 Hermes의 {r} 워커입니다. {ROLE_DESCRIPTIONS[r]} 한국어로 답하세요.", max_tokens): r
                 for r in selected}
         for future in as_completed(jobs):
@@ -192,9 +207,17 @@ def orchestrate(prompt: str, max_tokens: int = 1200) -> dict[str, Any]:
     else:
         verification = verify_with_opus(prompt, final.get("output", ""), max_tokens)
     verification_ok = bool(verification.get("success"))
-    return {"success": bool(final.get("success")) and verification_ok, "request": prompt, "roles": selected,
-            "workers": workers, "final": final, "verification": verification,
-            "routing": "NVIDIA workers → Luna recovery → Claude Opus final verification"}
+    return {
+        "success": bool(final.get("success")) and verification_ok,
+        "request": prompt,
+        "roles": selected,
+        "resource_hints": resource_hints,
+        "workers": workers,
+        "final": final,
+        "verification": verification,
+        "routing": "resource discovery → NVIDIA workers → Luna recovery → Claude Opus final verification",
+        "resource_hints_authoritative": False,
+    }
 
 
 def main() -> int:
