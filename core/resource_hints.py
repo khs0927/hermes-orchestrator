@@ -8,6 +8,16 @@ import sys
 from typing import Any
 
 
+def _bounded_strings(value: Any, limit: int = 20) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    rows: list[str] = []
+    for item in value[:limit]:
+        if isinstance(item, str) and item and len(item) <= 200:
+            rows.append(item)
+    return rows
+
+
 def query_resource_hints(prompt: str, k: int = 8) -> list[dict[str, Any]]:
     """Read advisory resource candidates from zcode-resource-router.
 
@@ -67,5 +77,10 @@ def query_resource_hints(prompt: str, k: int = 8) -> list[dict[str, Any]]:
         }
         if isinstance(verification_status, str) and verification_status:
             hint["verification_status"] = verification_status
+        if resource_type == "project_contract":
+            hint["verified_consumers"] = _bounded_strings(item.get("verified_consumers"))
+            hint["pending_consumers"] = _bounded_strings(item.get("pending_consumers"))
+            real_cad_e2e = item.get("real_cad_e2e")
+            hint["real_cad_e2e"] = real_cad_e2e if isinstance(real_cad_e2e, bool) else False
         hints.append(hint)
     return hints
